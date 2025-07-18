@@ -17,7 +17,7 @@ from telegram.ext import (
 
 nest_asyncio.apply()
 
-BOT_TOKEN = "5852649425:AAGdTBjY49FvtIZ6CjxmriJlgL--b1j7jEY"
+BOT_TOKEN = "6012796077:AAE2buse2dGVlymtbXmUcg10gKE87SpvpXQ"
 OWNER_ID = 1310488710
 
 logging.basicConfig(
