@@ -5,7 +5,7 @@ import os
 import asyncio
 import yt_dlp
 import nest_asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -56,21 +56,24 @@ config = load_config()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # إشعار المالك فقط إذا المستخدم جديد
+    # إشعار المالك فقط إذا المستخدم جديد (عدم تكرار الإشعار)
     if user_id not in users:
         users.add(user_id)
         save_users(users)
 
         await context.bot.send_message(
             OWNER_ID,
-            f"🆕 عضو جديد دخل البوت:\n\n"
-            f"👤 الاسم: {update.effective_user.full_name}\n"
-            f"🆔 الايدي: {user_id}\n"
-            f"📛 اليوزر: @{update.effective_user.username or 'لايوجد'}\n\n"
-            f"📊 عدد المستخدمين الكلي: {len(users)}"
+            "تم دخول شخص جديد إلى البوت الخاص بك 👾\n"
+            "-----------------------\n"
+            "• معلومات العضو الجديد .\n\n"
+            f"• الاسم : {update.effective_user.full_name}\n"
+            f"• معرف : @{update.effective_user.username or 'لايوجد'}\n"
+            f"• الايدي : {user_id}\n"
+            "-----------------------\n"
+            f"• عدد الأعضاء الكلي : {len(users)}"
         )
 
-    # تحقق الاشتراك في القنوات واحدة تلو الأخرى
+    # التحقق من الاشتراك في القنوات واحدة تلو الأخرى
     sub_channels = config.get("sub_channels", [])
     for channel in sub_channels:
         try:
@@ -98,10 +101,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🍁 أرسل الرابط فقط، وأنا أرسل لك الفيديو مباشرة!
     """
-    contact_button = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("📞 تواصل مع المالك", url="https://t.me/T_4IJ")]]
-    )
-    await update.message.reply_text(welcome_text, reply_markup=contact_button)
+    # حذف زر تواصل مع المالك من هنا
+    await update.message.reply_text(welcome_text)
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -239,10 +240,7 @@ async def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message_handler))
 
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()
-    await asyncio.Event().wait()
+    await application.run_polling()
 
 if __name__ == "__main__":
     asyncio.run(main())
