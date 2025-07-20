@@ -1,11 +1,10 @@
-
+import json
 import logging
 import re
 import os
 import asyncio
 import yt_dlp
 import nest_asyncio
-from pymongo import MongoClient
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -21,51 +20,46 @@ nest_asyncio.apply()
 BOT_TOKEN = "6012796077:AAE2buse2dGVlymtbXmUcg10gKE87SpvpXQ"
 OWNER_ID = 1310488710
 
-# إعداد MongoDB Atlas
-MONGO_URL = "mongodb+srv://botthaker:gPFqGj6SsOY692ap@cluster0.ufto3i2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-client = MongoClient(MONGO_URL)
-db = client["telegram_bot"]
-users_col = db["users"]
-config_col = db["config"]
-
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-# جلب المستخدمين من القاعدة
+USERS_FILE = "users.json"
+CONFIG_FILE = "config.json"
+
 def load_users():
-    return set(doc["user_id"] for doc in users_col.find())
+    try:
+        with open(USERS_FILE, "r") as f:
+            return set(json.load(f))
+    except:
+        return set()
 
-# حفظ مستخدم جديد (إذا ما موجود)
-def save_user(user_id):
-    if not users_col.find_one({"user_id": user_id}):
-        users_col.insert_one({"user_id": user_id})
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(list(users), f)
 
-# جلب الإعدادات
 def load_config():
-    config = config_col.find_one({"_id": "config"})
-    if config:
-        return config
-    else:
-        default = {"_id": "config", "sub_channels": []}
-        config_col.insert_one(default)
-        return default
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {"sub_channels": []}
 
-# حفظ الإعدادات
 def save_config(config):
-    config_col.replace_one({"_id": "config"}, config, upsert=True)
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f)
 
-# تحميل بيانات عند بداية التشغيل
 users = load_users()
 config = load_config()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
+    # إشعار المالك فقط إذا المستخدم جديد (عدم تكرار الإشعار)
     if user_id not in users:
         users.add(user_id)
-        save_user(user_id)
+        save_users(users)
 
         await context.bot.send_message(
             OWNER_ID,
@@ -79,6 +73,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• عدد الأعضاء الكلي : {len(users)}"
         )
 
+    # التحقق من الاشتراك في القنوات واحدة تلو الأخرى
     sub_channels = config.get("sub_channels", [])
     for channel in sub_channels:
         try:
@@ -106,6 +101,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🍁 أرسل الرابط فقط، وأنا أرسل لك الفيديو مباشرة!
     """
+    # حذف زر تواصل مع المالك من هنا
     await update.message.reply_text(welcome_text)
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -178,7 +174,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_id not in users:
         users.add(user_id)
-        save_user(user_id)
+        save_users(users)
 
     action = context.user_data.get("action")
 
