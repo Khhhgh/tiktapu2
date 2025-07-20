@@ -1,10 +1,5 @@
+pymongo
 python-telegram-bot==20.1
 yt-dlp
-aiohttp==3.7.4.post0
-apscheduler==3.8.1
 python-dotenv==0.19.0
-requests==2.26.0
-httpx~=0.23.3
 nest_asyncio
-selenium
-webdriver_manager
